@@ -448,14 +448,15 @@ fun WifiNetworkCard(
 ) {
     val isPersonal = network.ssid.startsWith("personal", ignoreCase = true)
 
-    ElevatedCard(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() },
         border = if (isPersonal) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
-        colors = if (isPersonal) CardDefaults.elevatedCardColors(
+        colors = if (isPersonal) CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-        ) else CardDefaults.elevatedCardColors()
+        ) else CardDefaults.cardColors(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
