@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wifi Analyzer - Web App</title>
+  <style>
+    :root {
+      --primary: #1E88E5;
+      --primary-container: #D1E4FF;
+      --on-primary-container: #001D36;
+      --secondary: #00897B;
+      --background: #F4F6F9;
+      --surface: #FFFFFF;
+      --surface-variant: #F0F4F8;
+      --text: #1C1B1F;
+      --text-muted: #5F6368;
+      --error: #BA1A1A;
+      --error-bg: #FFDAD6;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--background); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 16px; }
+
+    header {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    header h1 { font-size: 20px; font-weight: 700; }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 10px;
+      background: #FFF;
+      padding: 4px 8px;
+      transition: border-color 0.2s;
+    }
+    .input-wrapper:focus-within { border-color: var(--primary); }
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 8px 6px;
+      font-size: 15px;
+      background: transparent;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--primary);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .icon-btn:hover { background: #E2E8F0; }
+
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .btn-secondary {
+      background: #E2E8F0;
+      color: #334155;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-secondary:hover { background: #CBD5E1; }
+
+    .breakdown-card {
+      background: var(--surface-variant);
+      border: 1px solid #E2E8F0;
+    }
+    .step-box {
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border-left: 4px solid var(--primary);
+    }
+    .step-header { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+    .step-val { font-family: monospace; font-size: 15px; font-weight: 700; color: var(--primary); margin: 3px 0; }
+    .step-desc { font-size: 12px; color: var(--text-muted); }
+
+    .result-box {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-top: 14px;
+    }
+    .result-val {
+      font-family: monospace;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 2px;
+      margin: 8px 0 12px;
+      word-break: break-all;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      width: 100%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #1976D2; }
+
+    .error-box {
+      background: var(--error-bg);
+      color: var(--error);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: #323232;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      display: none;
+      z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>Wifi Analyzer</h1>
+    <span style="font-size: 12px; font-weight: bold; background: white; padding: 4px 8px; border-radius: 6px; color: var(--primary);">v1.0</span>
+  </header>
+
+  <!-- FORMULARIO -->
+  <div class="card">
+    <div class="card-title">
+      <span>Entrada de Parámetros</span>
+      <div class="quick-actions">
+        <button class="btn-secondary" onclick="loadExample()">Cargar Ejemplo</button>
+        <button class="btn-secondary" onclick="clearInputs()">Limpiar</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="ssid">SSID de la Red (Nombre)</label>
+      <div class="input-wrapper">
+        <input type="text" id="ssid" placeholder="Ej: Personal-E60" oninput="processAlgorithm()">
+        <button class="icon-btn" title="Copiar SSID" onclick="copyInput('ssid')">📋</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="mac">Dirección MAC / BSSID</label>
+      <div class="input-wrapper">
+        <input type="text" id="mac" placeholder="Ej: 20:35:43:2F:4E:65 o 2035432F4E65" oninput="processAlgorithm()">
+        <button class="icon-btn" title="Copiar MAC" onclick="copyInput('mac')">📋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESGLOSE -->
+  <div class="card breakdown-card">
+    <div class="card-title">Desglose del Algoritmo</div>
+
+    <div id="errorBox" class="error-box"></div>
+
+    <div id="breakdownContent" style="display: none;">
+      <div class="step-box">
+        <div class="step-header">PASO 1: MAC limpia sin primeros 2 dígitos</div>
+        <div class="step-val" id="step1Val"></div>
+        <div class="step-desc" id="step1Desc"></div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-header">PASO 2: Sufijo extraído del SSID</div>
+        <div class="step-val" id="step2Val"></div>
+        <div class="step-desc" id="step2Desc"></div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-header">PASO 3: Sustitución Posicional</div>
+        <div class="step-val" id="step3Val"></div>
+        <div class="step-desc" id="step3Desc"></div>
+      </div>
+
+      <div class="result-box">
+        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px;">CADENA DERIVADA FINAL</div>
+        <div class="result-val" id="finalResult"></div>
+        <button class="btn-primary" onclick="copyDerivedResult()">
+          <span>📋 Copiar Cadena Derivada</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="emptyNotice" style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px;">
+      Ingresa el SSID y la MAC para calcular el resultado en tiempo real.
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Copiado al portapapeles</div>
+
+<script>
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  function copyInput(id) {
+    const val = document.getElementById(id).value;
+    if (!val) return;
+    navigator.clipboard.writeText(val);
+    showToast(`Copiado: ${val}`);
+  }
+
+  function copyDerivedResult() {
+    const val = document.getElementById('finalResult').textContent;
+    if (!val) return;
+    navigator.clipboard.writeText(val);
+    showToast(`Cadena derivada copiada: ${val}`);
+  }
+
+  function loadExample() {
+    document.getElementById('ssid').value = 'Personal-E60';
+    document.getElementById('mac').value = '20:35:43:2F:4E:65';
+    processAlgorithm();
+  }
+
+  function clearInputs() {
+    document.getElementById('ssid').value = '';
+    document.getElementById('mac').value = '';
+    processAlgorithm();
+  }
+
+  function processAlgorithm() {
+    const ssid = document.getElementById('ssid').value.trim();
+    const mac = document.getElementById('mac').value.trim();
+
+    const errorBox = document.getElementById('errorBox');
+    const breakdownContent = document.getElementById('breakdownContent');
+    const emptyNotice = document.getElementById('emptyNotice');
+
+    if (!ssid && !mac) {
+      errorBox.style.display = 'none';
+      breakdownContent.style.display = 'none';
+      emptyNotice.style.display = 'block';
+      return;
+    }
+
+    emptyNotice.style.display = 'none';
+
+    // 1. Normalizar MAC
+    const cleanMac = mac.replace(/[:\-]/g, '').toUpperCase();
+    const hexRegex = /^[0-9A-F]{12}$/;
+    if (!hexRegex.test(cleanMac)) {
+      errorBox.textContent = `La dirección MAC no es válida. Debe contener exactamente 12 caracteres hexadecimales (0-9, A-F). Valor actual: '${cleanMac}' (${cleanMac.length} caracteres).`;
+      errorBox.style.display = 'block';
+      breakdownContent.style.display = 'none';
+      return;
+    }
+
+    // 2. Omitir 2 primeros caracteres
+    const macWithoutFirstTwo = cleanMac.substring(2);
+
+    // 3. Sufijo SSID
+    const lastDash = ssid.lastIndexOf('-');
+    if (lastDash === -1 || lastDash === ssid.length - 1) {
+      errorBox.textContent = "El SSID debe contener un guión '-' seguido del sufijo (ej: 'Personal-E60').";
+      errorBox.style.display = 'block';
+      breakdownContent.style.display = 'none';
+      return;
+    }
+
+    const suffix = ssid.substring(lastDash + 1).toUpperCase();
+    if (suffix.length > macWithoutFirstTwo.length) {
+      errorBox.textContent = `El sufijo '${suffix}' (${suffix.length} chars) no puede superar el tamaño de la MAC recortada (${macWithoutFirstTwo.length} chars).`;
+      errorBox.style.display = 'block';
+      breakdownContent.style.display = 'none';
+      return;
+    }
+
+    // 4. Sustitución posicional
+    const n = suffix.length;
+    const preserved = macWithoutFirstTwo.substring(0, macWithoutFirstTwo.length - n);
+    const derived = preserved + suffix;
+
+    // Renderizar
+    errorBox.style.display = 'none';
+    breakdownContent.style.display = 'block';
+
+    document.getElementById('step1Val').textContent = macWithoutFirstTwo;
+    document.getElementById('step1Desc').textContent = `Original: '${cleanMac}' -> Omitiendo 2 primeros dígitos: '${macWithoutFirstTwo}'`;
+
+    document.getElementById('step2Val').textContent = suffix;
+    document.getElementById('step2Desc').textContent = `Texto posterior al último guión en '${ssid}' (N = ${n} caracteres)`;
+
+    document.getElementById('step3Val').textContent = `${preserved} + [${suffix}]`;
+    document.getElementById('step3Desc').textContent = `Se conservan los primeros ${preserved.length} caracteres ('${preserved}') y se sustituyen los últimos ${n} con el sufijo.`;
+
+    document.getElementById('finalResult').textContent = derived;
+  }
+
+  // Ejecutar con ejemplo al cargar si está vacío
+  window.onload = loadExample;
+</script>
+
+</body>
+</html>
