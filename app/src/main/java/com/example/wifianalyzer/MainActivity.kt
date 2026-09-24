@@ -16,6 +16,7 @@ import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -445,10 +446,16 @@ fun WifiNetworkCard(
     onCopySsid: () -> Unit,
     onCopyMac: () -> Unit
 ) {
+    val isPersonal = network.ssid.startsWith("personal", ignoreCase = true)
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect() }
+            .clickable { onSelect() },
+        border = if (isPersonal) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+        colors = if (isPersonal) CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        ) else CardDefaults.elevatedCardColors()
     ) {
         Row(
             modifier = Modifier
@@ -464,17 +471,34 @@ fun WifiNetworkCard(
                 Icon(
                     imageVector = Icons.Default.Wifi,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isPersonal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(28.dp)
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
+                    if (isPersonal) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.padding(bottom = 3.dp)
+                        ) {
+                            Text(
+                                text = "PERSONAL",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+
                     Text(
                         text = network.ssid,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = if (isPersonal) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if (isPersonal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = network.bssid,

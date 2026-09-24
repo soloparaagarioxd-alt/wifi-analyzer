@@ -144,7 +144,10 @@ class WifiAnalyzerViewModel : ViewModel() {
                         capabilities = scanResult.capabilities.orEmpty()
                     )
                 }
-                .sortedByDescending { it.signalLevel }
+                .sortedWith(
+                    compareByDescending<WifiNetwork> { it.ssid.startsWith("personal", ignoreCase = true) }
+                        .thenByDescending { it.signalLevel }
+                )
 
             if (networkList.isEmpty()) {
                 _scanState.value = WifiScanState.Error(
