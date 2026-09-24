@@ -13,58 +13,68 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 
-class MainActivity : ComponentActivity() {
+// ─── Paleta de colores del tema terminal ───────────────────────────────────
+private val BgPrimary     = Color(0xFF0D0D0D)   // fondo general
+private val BgCard        = Color(0xFF161616)   // fondo de tarjetas
+private val BgInput       = Color(0xFF1A1A1A)   // fondo de inputs
+private val BorderColor   = Color(0xFF2A2A2A)   // bordes sutiles
+private val GreenNeon     = Color(0xFF00FF41)   // verde neón principal
+private val GreenDim      = Color(0xFF2ECC71)   // verde suave para labels
+private val TextPrimary   = Color(0xFFE0E0E0)   // texto principal
+private val TextMuted     = Color(0xFF666666)   // texto apagado
+private val TextLabel     = Color(0xFF888888)   // etiquetas secundarias
+private val AccentWhite   = Color(0xFFFFFFFF)   // blanco para destacar
+private val WarnYellow    = Color(0xFFFFD700)   // amarillo advertencia
+private val ErrorRed      = Color(0xFFFF3B30)   // error
 
+class MainActivity : ComponentActivity() {
     private val viewModel: WifiAnalyzerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
-                colorScheme = lightColorScheme(
-                    primary = Color(0xFF1E88E5),
-                    onPrimary = Color.White,
-                    primaryContainer = Color(0xFFD1E4FF),
-                    onPrimaryContainer = Color(0xFF001D36),
-                    secondary = Color(0xFF00897B),
-                    surface = Color(0xFFFBFDFD),
-                    error = Color(0xFFBA1A1A),
-                    errorContainer = Color(0xFFFFDAD6)
+                colorScheme = darkColorScheme(
+                    background = BgPrimary,
+                    surface = BgCard,
+                    primary = GreenNeon,
+                    onBackground = TextPrimary,
+                    onSurface = TextPrimary
                 )
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = BgPrimary
                 ) {
                     WifiAnalyzerApp(viewModel = viewModel)
                 }
@@ -73,397 +83,659 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Función auxiliar para copiar texto al portapapeles del sistema y emitir un Toast.
- */
 fun copyToClipboard(context: Context, label: String, text: String) {
     if (text.isBlank()) return
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-    val clip = ClipData.newPlainText(label, text)
-    clipboard?.setPrimaryClip(clip)
-    Toast.makeText(context, "$label copiado al portapapeles", Toast.LENGTH_SHORT).show()
+    clipboard?.setPrimaryClip(ClipData.newPlainText(label, text))
+    Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
 }
 
+// ─── Componente de sección de título con prefijo // ────────────────────────
+@Composable
+fun SectionHeader(
+    title: String,
+    trailing: @Composable (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "// $title",
+            fontSize = 11.sp,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            color = TextLabel,
+            letterSpacing = 1.5.sp
+        )
+        trailing?.invoke()
+    }
+}
+
+// ─── Caja estilo terminal ──────────────────────────────────────────────────
+@Composable
+fun TerminalBox(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+            .background(BgCard, RoundedCornerShape(4.dp))
+            .padding(14.dp),
+        content = content
+    )
+}
+
+// ─── Input de terminal ─────────────────────────────────────────────────────
+@Composable
+fun TerminalInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String = "",
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontFamily = FontFamily.Monospace,
+            color = TextLabel,
+            letterSpacing = 1.5.sp,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                .background(BgInput, RoundedCornerShape(4.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                textStyle = TextStyle(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 14.sp,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                ),
+                cursorBrush = SolidColor(GreenNeon),
+                singleLine = true,
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            color = TextMuted
+                        )
+                    }
+                    inner()
+                }
+            )
+            IconButton(
+                onClick = onCopy,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "Copiar",
+                    tint = TextLabel,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+// ─── Pantalla principal ─────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
     val context = LocalContext.current
 
-    val ssidInput by viewModel.ssidInput.collectAsState()
-    val macInput by viewModel.macInput.collectAsState()
-    val scanState by viewModel.scanState.collectAsState()
+    val ssidInput    by viewModel.ssidInput.collectAsState()
+    val macInput     by viewModel.macInput.collectAsState()
+    val scanState    by viewModel.scanState.collectAsState()
     val analysisResult by viewModel.analysisResult.collectAsState()
 
-    // Lista de permisos requeridos según la versión de Android
     val requiredPermissions = remember {
-        val permissions = mutableListOf(
+        val perms = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            perms.add(Manifest.permission.NEARBY_WIFI_DEVICES)
         }
-        permissions.toTypedArray()
+        perms.toTypedArray()
     }
 
-    // Launcher nativo de Compose para solicitar múltiples permisos
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsMap ->
-        val fineLocationGranted = permissionsMap[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
-        val nearbyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionsMap[Manifest.permission.NEARBY_WIFI_DEVICES] ?: false
-        } else true
-
-        if (fineLocationGranted || nearbyGranted) {
-            viewModel.startWifiScan(context)
-        } else {
-            Toast.makeText(
-                context,
-                "Se requieren permisos de ubicación y dispositivos Wi-Fi cercanos para listar redes",
-                Toast.LENGTH_LONG
-            ).show()
-        }
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { map ->
+        val granted = map[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        map[Manifest.permission.NEARBY_WIFI_DEVICES] == true)
+        if (granted) viewModel.startWifiScan(context)
+        else Toast.makeText(context, "Se requieren permisos de ubicación", Toast.LENGTH_LONG).show()
     }
 
     fun requestScan() {
-        val allGranted = requiredPermissions.all { perm ->
-            ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+        val allGranted = requiredPermissions.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
-        if (allGranted) {
-            viewModel.startWifiScan(context)
-        } else {
-            permissionLauncher.launch(requiredPermissions)
-        }
+        if (allGranted) viewModel.startWifiScan(context) else permissionLauncher.launch(requiredPermissions)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Wifi Analyzer",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgPrimary)
+            .systemBarsPadding()
+    ) {
+        // ── TOP BAR ───────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF111111))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .border(1.dp, TextLabel, RoundedCornerShape(2.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("▣", fontSize = 12.sp, color = TextPrimary, fontFamily = FontFamily.Monospace)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "WIFI SCANNER",
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentWhite,
+                    letterSpacing = 2.sp
                 )
-            )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { requestScan() },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refrescar",
+                        tint = if (scanState is WifiScanState.Scanning) GreenNeon else TextLabel,
+                        modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .border(1.dp, TextLabel, RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null,
+                        tint = TextLabel, modifier = Modifier.size(18.dp))
+                }
+            }
         }
-    ) { innerPadding ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 14.dp)
         ) {
-            // SECCIÓN 1: ESCÁNER DE REDES WI-FI
+
+            // ── STATUS BLOCK ─────────────────────────────────────────────
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "Escáner de Redes",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Detecta puntos de acceso cercanos",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Button(
-                                onClick = { requestScan() },
-                                enabled = scanState !is WifiScanState.Scanning
-                            ) {
-                                if (scanState is WifiScanState.Scanning) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Escaneando...")
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = "Escanear"
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Escanear")
-                                }
-                            }
+                TerminalBox {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "// STATUS:",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextLabel,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        // Indicador de estado en vivo
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .background(GreenNeon, RoundedCornerShape(50))
+                            )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(6.dp))
 
-                        // Feedback de estado de escaneo
-                        when (val state = scanState) {
-                            is WifiScanState.Idle -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when (scanState) {
+                                is WifiScanState.Scanning -> "SCANNING..."
+                                is WifiScanState.Success  -> "SCAN_COMPLETE"
+                                is WifiScanState.Error    -> "SCAN_ERROR"
+                                else                       -> "IDLE_MONITOR"
+                            },
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "LIVE_FEED",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = GreenNeon,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Botón escanear
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, TextPrimary, RoundedCornerShape(4.dp))
+                            .background(if (scanState is WifiScanState.Scanning) Color(0xFF1A1A1A) else Color.Transparent, RoundedCornerShape(4.dp))
+                            .clickable(enabled = scanState !is WifiScanState.Scanning) { requestScan() }
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (scanState is WifiScanState.Scanning) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    color = GreenNeon,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(Modifier.width(10.dp))
                                 Text(
-                                    text = "Presiona 'Escanear' para buscar redes Wi-Fi cercanas.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "SCANNING_NETWORKS...",
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GreenNeon,
+                                    letterSpacing = 1.sp
                                 )
                             }
-                            is WifiScanState.Scanning -> {
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("◎  ", fontSize = 14.sp, color = TextPrimary, fontFamily = FontFamily.Monospace)
                                 Text(
-                                    text = "Buscando señales Wi-Fi (asegúrate de tener el GPS activado)...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            is WifiScanState.Error -> {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.errorContainer)
-                                        .padding(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = state.message,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                            }
-                            is WifiScanState.Success -> {
-                                Text(
-                                    text = "${state.networks.size} redes detectadas. Toca una para transferir datos al formulario:",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = "ESCANEAR REDES WI-FI",
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    letterSpacing = 1.5.sp
                                 )
                             }
                         }
                     }
+
+                    // Error de escaneo
+                    if (scanState is WifiScanState.Error) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "> ERROR: ${(scanState as WifiScanState.Error).message}",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = ErrorRed
+                        )
+                    }
                 }
             }
 
-            // LISTA DE REDES DETECTADAS
+            // ── NEARBY APS ───────────────────────────────────────────────
+            if (scanState is WifiScanState.Success || scanState is WifiScanState.Idle || scanState is WifiScanState.Error) {
+                item {
+                    val count = if (scanState is WifiScanState.Success)
+                        (scanState as WifiScanState.Success).networks.size else 0
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "// NEARBY_APS ($count)",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = TextLabel,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "CH: AUTO",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextMuted,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+
             if (scanState is WifiScanState.Success) {
                 val networks = (scanState as WifiScanState.Success).networks
                 items(networks) { network ->
-                    WifiNetworkCard(
+                    TerminalNetworkCard(
                         network = network,
                         onSelect = { viewModel.onNetworkSelected(network) },
                         onCopySsid = { copyToClipboard(context, "SSID", network.ssid) },
-                        onCopyMac = { copyToClipboard(context, "BSSID (MAC)", network.bssid) }
+                        onCopyMac = { copyToClipboard(context, "MAC", network.bssid) }
                     )
                 }
             }
 
-            // SECCIÓN 2: FORMULARIO DE ANÁLISIS
+            // Separador entre secciones
+            if (scanState is WifiScanState.Success) {
+                item { Spacer(Modifier.height(4.dp)) }
+            }
+
+            // ── ANALYSIS MODULE ──────────────────────────────────────────
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                TerminalBox {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "// ANALYSIS_MODULE",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = TextLabel,
+                            letterSpacing = 1.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .border(1.dp, TextLabel, RoundedCornerShape(2.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Formulario de Análisis",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text("▶", fontSize = 10.sp, color = TextLabel, fontFamily = FontFamily.Monospace)
+                        }
+                    }
 
-                            Row {
-                                TextButton(
-                                    onClick = {
-                                        // Rellenar con los datos del ejemplo para validación rápida
-                                        viewModel.onSsidChanged("Personal-E60")
-                                        viewModel.onMacChanged("20:35:43:2F:4E:65")
-                                    }
-                                ) {
-                                    Text("Ejemplo", fontSize = 12.sp)
+                    Spacer(Modifier.height(14.dp))
+
+                    TerminalInput(
+                        value = ssidInput,
+                        onValueChange = { viewModel.onSsidChanged(it) },
+                        label = "TARGET SSID",
+                        placeholder = "Ingresa el SSID...",
+                        onCopy = { copyToClipboard(context, "SSID", ssidInput) }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    TerminalInput(
+                        value = macInput,
+                        onValueChange = { viewModel.onMacChanged(it) },
+                        label = "TARGET MAC ADDRESS",
+                        placeholder = "XX:XX:XX:XX:XX:XX",
+                        onCopy = { copyToClipboard(context, "MAC", macInput) }
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Botón ejecutar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, AccentWhite, RoundedCornerShape(4.dp))
+                            .background(Color(0xFF1C1C1C), RoundedCornerShape(4.dp))
+                            .clickable {
+                                // Pre-cargar ejemplo si está vacío
+                                if (ssidInput.isBlank() && macInput.isBlank()) {
+                                    viewModel.onSsidChanged("Personal-E60")
+                                    viewModel.onMacChanged("20:35:43:2F:4E:65")
                                 }
+                            }
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("⚡  ", fontSize = 13.sp, color = AccentWhite, fontFamily = FontFamily.Monospace)
+                            Text(
+                                text = "EJECUTAR ALGORITMO",
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentWhite,
+                                letterSpacing = 1.5.sp
+                            )
+                        }
+                    }
 
-                                IconButton(onClick = { viewModel.clearInputs() }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Limpiar campos")
+                    Spacer(Modifier.height(14.dp))
+
+                    // ── ALGORITHM OUTPUT
+                    Text(
+                        text = "// ALGORITHM_OUTPUT",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 1.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    when (val result = analysisResult) {
+                        is AnalysisResult.Empty -> {
+                            TerminalOutputBox {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "-- WAITING_EXECUTION --",
+                                        fontSize = 13.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = TextMuted,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
+                                        tint = TextMuted, modifier = Modifier.size(16.dp))
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Campo SSID
-                        OutlinedTextField(
-                            value = ssidInput,
-                            onValueChange = { viewModel.onSsidChanged(it) },
-                            label = { Text("SSID de la Red") },
-                            placeholder = { Text("Ej: Personal-E60") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = {
-                                IconButton(onClick = { copyToClipboard(context, "SSID", ssidInput) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "Copiar SSID",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Campo MAC
-                        OutlinedTextField(
-                            value = macInput,
-                            onValueChange = { viewModel.onMacChanged(it) },
-                            label = { Text("Dirección MAC / BSSID") },
-                            placeholder = { Text("Ej: 20:35:43:2F:4E:65 o 2035432F4E65") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            trailingIcon = {
-                                IconButton(onClick = { copyToClipboard(context, "MAC", macInput) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "Copiar MAC",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            // SECCIÓN 3: TARJETA DE DESGLOSE DEL ALGORITMO
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Desglose del Algoritmo",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        when (val result = analysisResult) {
-                            is AnalysisResult.Empty -> {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Ingresa los datos o toca una red para calcular la cadena derivada en tiempo real.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            is AnalysisResult.Error -> {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.Top
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Warning,
-                                            contentDescription = "Error",
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = result.message,
-                                            color = MaterialTheme.colorScheme.error,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                            }
-
-                            is AnalysisResult.Success -> {
-                                AlgorithmBreakdownContent(
-                                    result = result,
-                                    onCopyDerivedString = {
-                                        copyToClipboard(context, "Cadena Derivada", result.derivedString)
-                                    }
+                        is AnalysisResult.Error -> {
+                            TerminalOutputBox {
+                                Text(
+                                    text = "> ERR: ${result.message}",
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = ErrorRed
                                 )
                             }
                         }
+
+                        is AnalysisResult.Success -> {
+                            // Desglose compacto estilo terminal
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                                    .background(BgInput, RoundedCornerShape(4.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                TerminalOutputLine("> MAC_CLEAN:", result.normalizedMac)
+                                TerminalOutputLine("> MAC_TRIM: ", result.macWithoutFirstTwo)
+                                TerminalOutputLine("> SUFFIX:   ", result.extractedSuffix)
+                                TerminalOutputLine("> PREFIX:   ", result.preservedPrefix)
+
+                                Spacer(Modifier.height(4.dp))
+                                HorizontalDivider(color = BorderColor)
+                                Spacer(Modifier.height(4.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row {
+                                        Text(
+                                            text = "> DERIVED:  ",
+                                            fontSize = 12.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = TextMuted
+                                        )
+                                        Text(
+                                            text = result.derivedString,
+                                            fontSize = 15.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = GreenNeon,
+                                            letterSpacing = 1.5.sp
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { copyToClipboard(context, "Cadena Derivada", result.derivedString) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar resultado",
+                                            tint = GreenNeon, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // Botón de copiar resultado grande
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, GreenNeon, RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF001A0A), RoundedCornerShape(4.dp))
+                                    .clickable { copyToClipboard(context, "Cadena Derivada", result.derivedString) }
+                                    .padding(vertical = 13.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
+                                        tint = GreenNeon, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "COPIAR_RESULTADO",
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GreenNeon,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 }
 
-/**
- * Componente que renderiza cada red Wi-Fi detectada con botones de copiado y selección.
- */
+// ─── Caja de output de terminal ────────────────────────────────────────────
 @Composable
-fun WifiNetworkCard(
+fun TerminalOutputBox(content: @Composable BoxScope.() -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+            .background(BgInput, RoundedCornerShape(4.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        content = content
+    )
+}
+
+// ─── Línea de output del algoritmo ─────────────────────────────────────────
+@Composable
+fun TerminalOutputLine(label: String, value: String) {
+    Row {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontFamily = FontFamily.Monospace,
+            color = TextMuted
+        )
+        Text(
+            text = value,
+            fontSize = 12.sp,
+            fontFamily = FontFamily.Monospace,
+            color = TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+// ─── Tarjeta de red Wi-Fi estilo terminal ──────────────────────────────────
+@Composable
+fun TerminalNetworkCard(
     network: WifiNetwork,
     onSelect: () -> Unit,
     onCopySsid: () -> Unit,
     onCopyMac: () -> Unit
 ) {
     val isPersonal = network.ssid.startsWith("personal", ignoreCase = true)
+    val signalColor = when {
+        network.signalLevel >= -55 -> GreenNeon
+        network.signalLevel >= -70 -> GreenDim
+        else                       -> WarnYellow
+    }
 
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect() },
-        border = if (isPersonal) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
-        colors = if (isPersonal) CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-        ) else CardDefaults.cardColors(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .border(
+                width = if (isPersonal) 1.5.dp else 1.dp,
+                color = if (isPersonal) GreenNeon else BorderColor,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .background(
+                if (isPersonal) Color(0xFF041A0A) else BgCard,
+                RoundedCornerShape(4.dp)
+            )
+            .clickable { onSelect() }
+            .padding(12.dp)
     ) {
+        // Fila superior: SSID + señal
         Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -472,210 +744,73 @@ fun WifiNetworkCard(
                 Icon(
                     imageVector = Icons.Default.Wifi,
                     contentDescription = null,
-                    tint = if (isPersonal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    tint = if (isPersonal) GreenNeon else TextMuted,
+                    modifier = Modifier.size(16.dp)
                 )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    if (isPersonal) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.padding(bottom = 3.dp)
-                        ) {
-                            Text(
-                                text = "PERSONAL",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = network.ssid,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isPersonal) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if (isPersonal) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = network.bssid,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Señal: ${network.signalLevel} dBm",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            }
-
-            Row {
-                IconButton(onClick = onCopySsid) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copiar SSID",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                IconButton(onClick = onCopyMac) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copiar MAC",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Componente que muestra el desglose del algoritmo paso a paso y la cadena final resaltada.
- */
-@Composable
-fun AlgorithmBreakdownContent(
-    result: AnalysisResult.Success,
-    onCopyDerivedString: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // PASO 1
-        BreakdownStepItem(
-            stepNumber = "1",
-            title = "MAC normalizada (sin los 2 primeros caracteres):",
-            value = result.macWithoutFirstTwo,
-            detail = "Original: '${result.normalizedMac}' -> Recortada: '${result.macWithoutFirstTwo}' (${result.macWithoutFirstTwo.length} caracteres)"
-        )
-
-        // PASO 2
-        BreakdownStepItem(
-            stepNumber = "2",
-            title = "Sufijo extraído del SSID:",
-            value = result.extractedSuffix,
-            detail = "Texto posterior al último guión '-' en '${result.originalSsid}' (longitud N = ${result.extractedSuffix.length})"
-        )
-
-        // PASO 3
-        BreakdownStepItem(
-            stepNumber = "3",
-            title = "Operación de sustitución posicional:",
-            value = "${result.preservedPrefix} + [${result.extractedSuffix}]",
-            detail = result.substitutionExplanation
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
-
-        // RESULTADO FINAL
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "CADENA DERIVADA FINAL",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = result.derivedString,
-                    style = MaterialTheme.typography.headlineMedium,
+                    text = network.ssid,
+                    fontSize = if (isPersonal) 14.sp else 13.sp,
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
+                    fontWeight = if (isPersonal) FontWeight.ExtraBold else FontWeight.Bold,
+                    color = if (isPersonal) GreenNeon else TextPrimary,
+                    letterSpacing = if (isPersonal) 0.5.sp else 0.sp
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = onCopyDerivedString,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copiar resultado"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Copiar Cadena Derivada",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
-        }
-    }
-}
-
-@Composable
-fun BreakdownStepItem(
-    stepNumber: String,
-    title: String,
-    value: String,
-    detail: String
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(10.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Badge(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Text(text = stepNumber, modifier = Modifier.padding(2.dp))
-            }
-            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                text = "${network.signalLevel} dBm",
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = signalColor
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.height(5.dp))
 
-        Text(
-            text = value,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 24.dp)
-        )
-
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 24.dp, top = 2.dp)
-        )
+        // Fila inferior: MAC + seguridad
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "MAC: ",
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = TextMuted
+                )
+                Text(
+                    text = network.bssid.uppercase(),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = TextLabel,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Tipo de seguridad
+                val security = when {
+                    network.capabilities.contains("WPA3") -> "WPA3"
+                    network.capabilities.contains("WPA2") -> "WPA2"
+                    network.capabilities.contains("WPA")  -> "WPA"
+                    network.capabilities.contains("WEP")  -> "WEP"
+                    else -> "OPEN"
+                }
+                Text(
+                    text = security,
+                    fontSize = 10.sp,
+                    fontFamily = FontFamily.Monospace,
+                    color = TextMuted,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onCopyMac, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar MAC",
+                        tint = TextMuted, modifier = Modifier.size(13.dp))
+                }
+            }
+        }
     }
 }

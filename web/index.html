@@ -3,432 +3,433 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wifi Analyzer - Web App</title>
+  <title>WIFI SCANNER</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
+
     :root {
-      --primary: #1E88E5;
-      --primary-container: #D1E4FF;
-      --on-primary-container: #001D36;
-      --secondary: #00897B;
-      --background: #F4F6F9;
-      --surface: #FFFFFF;
-      --surface-variant: #F0F4F8;
-      --text: #1C1B1F;
-      --text-muted: #5F6368;
-      --error: #BA1A1A;
-      --error-bg: #FFDAD6;
-      --radius: 14px;
+      --bg-primary:  #0D0D0D;
+      --bg-card:     #161616;
+      --bg-input:    #1A1A1A;
+      --border:      #2A2A2A;
+      --green-neon:  #00FF41;
+      --green-dim:   #2ECC71;
+      --text:        #E0E0E0;
+      --muted:       #666666;
+      --label:       #888888;
+      --white:       #FFFFFF;
+      --yellow:      #FFD700;
+      --error:       #FF3B30;
+      --radius:      4px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--background); color: var(--text); padding: 16px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 16px; }
-
-    header {
-      background: var(--primary-container);
-      color: var(--on-primary-container);
-      padding: 16px 20px;
-      border-radius: var(--radius);
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    header h1 { font-size: 20px; font-weight: 700; }
-
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
     }
 
-    .form-group {
+    .shell {
+      width: 100%;
+      max-width: 380px;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 14px;
     }
-    label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-    .input-wrapper {
+
+    /* TOP BAR */
+    .topbar {
+      background: #111;
+      padding: 14px 16px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      border: 1.5px solid #CBD5E1;
-      border-radius: 10px;
-      background: #FFF;
-      padding: 4px 8px;
-      transition: border-color 0.2s;
+      border-bottom: 1px solid var(--border);
     }
-    .input-wrapper:focus-within { border-color: var(--primary); }
-    input {
-      flex: 1;
-      border: none;
-      outline: none;
-      padding: 8px 6px;
-      font-size: 15px;
-      background: transparent;
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .term-icon {
+      width: 28px; height: 28px;
+      border: 1px solid var(--label);
+      border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--text);
     }
+    .topbar-title { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--white); }
+    .topbar-right { display: flex; align-items: center; gap: 6px; }
     .icon-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 6px;
-      color: var(--primary);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
+      background: none; border: none; cursor: pointer; padding: 6px;
+      color: var(--label); border-radius: 2px; display: flex; align-items: center;
     }
-    .icon-btn:hover { background: #E2E8F0; }
+    .icon-btn:hover { color: var(--text); }
+    .avatar {
+      width: 32px; height: 32px; border: 1px solid var(--label);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--label);
+    }
 
-    .quick-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .btn-secondary {
-      background: #E2E8F0;
-      color: #334155;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-secondary:hover { background: #CBD5E1; }
+    /* SCROLL CONTENT */
+    .content { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
 
-    .breakdown-card {
-      background: var(--surface-variant);
-      border: 1px solid #E2E8F0;
+    /* TERMINAL BOX */
+    .term-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
     }
-    .step-box {
-      background: #FFFFFF;
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      border-left: 4px solid var(--primary);
-    }
-    .step-header { font-size: 12px; font-weight: 700; color: var(--text-muted); }
-    .step-val { font-family: monospace; font-size: 15px; font-weight: 700; color: var(--primary); margin: 3px 0; }
-    .step-desc { font-size: 12px; color: var(--text-muted); }
 
-    .result-box {
-      background: var(--primary-container);
-      color: var(--on-primary-container);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      margin-top: 14px;
+    /* SECTION HEADER */
+    .section-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
     }
-    .result-val {
-      font-family: monospace;
-      font-size: 26px;
-      font-weight: 800;
-      color: var(--primary);
-      letter-spacing: 2px;
-      margin: 8px 0 12px;
-      word-break: break-all;
+    .section-title {
+      font-size: 11px; font-weight: 700; color: var(--label);
+      letter-spacing: 1.5px;
     }
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      width: 100%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-    .btn-primary:hover { background: #1976D2; }
 
-    .error-box {
-      background: var(--error-bg);
-      color: var(--error);
+    /* STATUS ROW */
+    .status-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .status-indicator { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-neon); }
+    .live-badge { font-size: 11px; font-weight: 700; color: var(--green-neon); letter-spacing: 1px; }
+    .status-text { font-size: 12px; font-weight: 700; color: var(--text); }
+
+    /* TERMINAL BUTTON */
+    .term-btn {
+      width: 100%; background: none; border: 1px solid var(--text);
+      color: var(--text); padding: 13px; border-radius: var(--radius);
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      letter-spacing: 1.5px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .term-btn:hover { background: rgba(255,255,255,0.04); }
+    .term-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .term-btn.green {
+      border-color: var(--green-neon); color: var(--green-neon);
+      background: rgba(0,255,65,0.04);
+    }
+    .term-btn.green:hover { background: rgba(0,255,65,0.08); }
+
+    /* NEARBY APS HEADER */
+    .aps-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 4px 0;
+    }
+    .ch-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+    /* NETWORK CARD */
+    .net-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.4;
-      display: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .net-card:hover { border-color: #444; }
+    .net-card.personal { border-color: var(--green-neon); background: rgba(0,255,65,0.03); }
+    .net-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .net-ssid-wrap { display: flex; align-items: center; gap: 7px; }
+    .net-ssid { font-size: 13px; font-weight: 700; color: var(--text); }
+    .net-card.personal .net-ssid { color: var(--green-neon); font-size: 14px; font-weight: 800; }
+    .signal { font-size: 12px; font-weight: 700; }
+    .signal.good { color: var(--green-neon); }
+    .signal.ok   { color: var(--green-dim); }
+    .signal.weak { color: var(--yellow); }
+    .net-row-bot { display: flex; justify-content: space-between; align-items: center; }
+    .net-mac { font-size: 11px; color: var(--label); }
+    .net-mac span { color: var(--muted); }
+    .net-sec { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; }
+    .copy-sm { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 11px; padding: 2px; }
+    .copy-sm:hover { color: var(--text); }
+    .wifi-icon { color: var(--muted); font-size: 14px; }
+    .personal .wifi-icon { color: var(--green-neon); }
+
+    /* INPUTS */
+    .input-label { font-size: 10px; color: var(--label); letter-spacing: 1.5px; margin-bottom: 6px; }
+    .input-wrap {
+      display: flex; align-items: center;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-input); padding: 9px 10px; margin-bottom: 12px;
+    }
+    .input-wrap input {
+      flex: 1; background: none; border: none; outline: none;
+      font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .input-wrap input::placeholder { color: var(--muted); font-weight: 400; }
+
+    /* OUTPUT BOX */
+    .output-box {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-input); padding: 10px 12px;
+    }
+    .output-waiting { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; }
+    .output-line { display: flex; margin-bottom: 3px; font-size: 12px; }
+    .output-key { color: var(--muted); width: 100px; flex-shrink: 0; }
+    .output-val { color: var(--text); font-weight: 700; }
+    .output-divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+    .output-derived { display: flex; justify-content: space-between; align-items: center; }
+    .derived-val { font-size: 15px; font-weight: 800; color: var(--green-neon); letter-spacing: 1.5px; }
+    .output-error { color: var(--error); font-size: 12px; }
+
+    /* MINI BOX for term icon */
+    .mini-icon-box {
+      width: 24px; height: 24px; border: 1px solid var(--label);
+      border-radius: 2px; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--label);
     }
 
+    /* TOAST */
     .toast {
-      position: fixed;
-      bottom: 24px;
-      background: #323232;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 13px;
-      display: none;
-      z-index: 100;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #222; color: var(--green-neon); padding: 8px 18px;
+      border-radius: 4px; font-size: 12px; border: 1px solid var(--green-neon);
+      display: none; z-index: 100; letter-spacing: 1px;
     }
   </style>
 </head>
 <body>
+<div class="shell">
 
-<div class="container">
-  <header>
-    <h1>Wifi Analyzer</h1>
-    <span style="font-size: 12px; font-weight: bold; background: white; padding: 4px 8px; border-radius: 6px; color: var(--primary);">v1.0.1</span>
-  </header>
-
-  <!-- LISTA DE REDES DEMO / PRIORIZADAS -->
-  <div class="card">
-    <div class="card-title">
-      <span>Redes Detectadas (Prioridad Personal)</span>
-      <span style="font-size: 11px; color: var(--text-muted);">Toca para analizar</span>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="term-icon">▣</div>
+      <span class="topbar-title">WIFI SCANNER</span>
     </div>
-    <div id="networksList" style="display: flex; flex-direction: column; gap: 8px;">
-      <!-- Se llena dinámicamente ordenando 'Personal' primero -->
+    <div class="topbar-right">
+      <button class="icon-btn" onclick="renderAll()" title="Actualizar">↻</button>
+      <div class="avatar">👤</div>
     </div>
   </div>
 
-  <!-- FORMULARIO -->
-  <div class="card">
-    <div class="card-title">
-      <span>Entrada de Parámetros</span>
-      <div class="quick-actions">
-        <button class="btn-secondary" onclick="loadExample()">Cargar Ejemplo</button>
-        <button class="btn-secondary" onclick="clearInputs()">Limpiar</button>
+  <div class="content">
+
+    <!-- STATUS BLOCK -->
+    <div class="term-box">
+      <div class="section-header">
+        <span class="section-title">// STATUS:</span>
+        <div class="status-indicator">
+          <div class="dot"></div>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-text" id="statusText">IDLE_MONITOR</span>
+        <span class="live-badge">LIVE_FEED</span>
+      </div>
+      <button class="term-btn" id="scanBtn" onclick="scanNetworks()">
+        <span>◎</span> ESCANEAR REDES WI-FI
+      </button>
+    </div>
+
+    <!-- NEARBY APS -->
+    <div class="aps-header">
+      <span class="section-title" id="apsHeader">// NEARBY_APS (0)</span>
+      <span class="ch-label">CH: AUTO</span>
+    </div>
+
+    <div id="networksList" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+    <!-- ANALYSIS MODULE -->
+    <div class="term-box">
+      <div class="section-header">
+        <span class="section-title">// ANALYSIS_MODULE</span>
+        <div class="mini-icon-box">▶</div>
+      </div>
+
+      <div class="input-label">TARGET SSID</div>
+      <div class="input-wrap">
+        <input type="text" id="ssid" placeholder="Ingresa el SSID..." oninput="runAlgorithm()">
+        <button class="copy-sm" onclick="copyField('ssid')">⎘</button>
+      </div>
+
+      <div class="input-label">TARGET MAC ADDRESS</div>
+      <div class="input-wrap">
+        <input type="text" id="mac" placeholder="XX:XX:XX:XX:XX:XX" oninput="runAlgorithm()">
+        <button class="copy-sm" onclick="copyField('mac')">⎘</button>
+      </div>
+
+      <button class="term-btn" onclick="runAlgorithmFromBtn()" style="margin-bottom:14px;">
+        <span>⚡</span> EJECUTAR ALGORITMO
+      </button>
+
+      <div class="section-title" style="margin-bottom:8px;">// ALGORITHM_OUTPUT</div>
+      <div class="output-box" id="outputBox">
+        <div class="output-waiting">
+          <span>-- WAITING_EXECUTION --</span>
+          <span>⎘</span>
+        </div>
       </div>
     </div>
 
-    <div class="form-group">
-      <label for="ssid">SSID de la Red (Nombre)</label>
-      <div class="input-wrapper">
-        <input type="text" id="ssid" placeholder="Ej: Personal-E60" oninput="processAlgorithm()">
-        <button class="icon-btn" title="Copiar SSID" onclick="copyInput('ssid')">📋</button>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="mac">Dirección MAC / BSSID</label>
-      <div class="input-wrapper">
-        <input type="text" id="mac" placeholder="Ej: 20:35:43:2F:4E:65 o 2035432F4E65" oninput="processAlgorithm()">
-        <button class="icon-btn" title="Copiar MAC" onclick="copyInput('mac')">📋</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DESGLOSE -->
-  <div class="card breakdown-card">
-    <div class="card-title">Desglose del Algoritmo</div>
-
-    <div id="errorBox" class="error-box"></div>
-
-    <div id="breakdownContent" style="display: none;">
-      <div class="step-box">
-        <div class="step-header">PASO 1: MAC limpia sin primeros 2 dígitos</div>
-        <div class="step-val" id="step1Val"></div>
-        <div class="step-desc" id="step1Desc"></div>
-      </div>
-
-      <div class="step-box">
-        <div class="step-header">PASO 2: Sufijo extraído del SSID</div>
-        <div class="step-val" id="step2Val"></div>
-        <div class="step-desc" id="step2Desc"></div>
-      </div>
-
-      <div class="step-box">
-        <div class="step-header">PASO 3: Sustitución Posicional</div>
-        <div class="step-val" id="step3Val"></div>
-        <div class="step-desc" id="step3Desc"></div>
-      </div>
-
-      <div class="result-box">
-        <div style="font-size: 11px; font-weight: 800; letter-spacing: 1px;">CADENA DERIVADA FINAL</div>
-        <div class="result-val" id="finalResult"></div>
-        <button class="btn-primary" onclick="copyDerivedResult()">
-          <span>📋 Copiar Cadena Derivada</span>
-        </button>
-      </div>
-    </div>
-
-    <div id="emptyNotice" style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 16px;">
-      Ingresa el SSID y la MAC para calcular el resultado en tiempo real.
-    </div>
   </div>
 </div>
 
-<div id="toast" class="toast">Copiado al portapapeles</div>
+<div class="toast" id="toast">COPIADO</div>
 
 <script>
-  function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2000);
-  }
-
-  function copyInput(id) {
-    const val = document.getElementById(id).value;
-    if (!val) return;
-    navigator.clipboard.writeText(val);
-    showToast(`Copiado: ${val}`);
-  }
-
-  function copyDerivedResult() {
-    const val = document.getElementById('finalResult').textContent;
-    if (!val) return;
-    navigator.clipboard.writeText(val);
-    showToast(`Cadena derivada copiada: ${val}`);
-  }
-
-  function loadExample() {
-    document.getElementById('ssid').value = 'Personal-E60';
-    document.getElementById('mac').value = '20:35:43:2F:4E:65';
-    processAlgorithm();
-  }
-
-  function clearInputs() {
-    document.getElementById('ssid').value = '';
-    document.getElementById('mac').value = '';
-    processAlgorithm();
-  }
-
-  function processAlgorithm() {
-    const ssid = document.getElementById('ssid').value.trim();
-    const mac = document.getElementById('mac').value.trim();
-
-    const errorBox = document.getElementById('errorBox');
-    const breakdownContent = document.getElementById('breakdownContent');
-    const emptyNotice = document.getElementById('emptyNotice');
-
-    if (!ssid && !mac) {
-      errorBox.style.display = 'none';
-      breakdownContent.style.display = 'none';
-      emptyNotice.style.display = 'block';
-      return;
-    }
-
-    emptyNotice.style.display = 'none';
-
-    // 1. Normalizar MAC
-    const cleanMac = mac.replace(/[:\-]/g, '').toUpperCase();
-    const hexRegex = /^[0-9A-F]{12}$/;
-    if (!hexRegex.test(cleanMac)) {
-      errorBox.textContent = `La dirección MAC no es válida. Debe contener exactamente 12 caracteres hexadecimales (0-9, A-F). Valor actual: '${cleanMac}' (${cleanMac.length} caracteres).`;
-      errorBox.style.display = 'block';
-      breakdownContent.style.display = 'none';
-      return;
-    }
-
-    // 2. Omitir 2 primeros caracteres
-    const macWithoutFirstTwo = cleanMac.substring(2);
-
-    // 3. Sufijo SSID
-    const lastDash = ssid.lastIndexOf('-');
-    if (lastDash === -1 || lastDash === ssid.length - 1) {
-      errorBox.textContent = "El SSID debe contener un guión '-' seguido del sufijo (ej: 'Personal-E60').";
-      errorBox.style.display = 'block';
-      breakdownContent.style.display = 'none';
-      return;
-    }
-
-    const suffix = ssid.substring(lastDash + 1).toUpperCase();
-    if (suffix.length > macWithoutFirstTwo.length) {
-      errorBox.textContent = `El sufijo '${suffix}' (${suffix.length} chars) no puede superar el tamaño de la MAC recortada (${macWithoutFirstTwo.length} chars).`;
-      errorBox.style.display = 'block';
-      breakdownContent.style.display = 'none';
-      return;
-    }
-
-    // 4. Sustitución posicional
-    const n = suffix.length;
-    const preserved = macWithoutFirstTwo.substring(0, macWithoutFirstTwo.length - n);
-    const derived = preserved + suffix;
-
-    // Renderizar
-    errorBox.style.display = 'none';
-    breakdownContent.style.display = 'block';
-
-    document.getElementById('step1Val').textContent = macWithoutFirstTwo;
-    document.getElementById('step1Desc').textContent = `Original: '${cleanMac}' -> Omitiendo 2 primeros dígitos: '${macWithoutFirstTwo}'`;
-
-    document.getElementById('step2Val').textContent = suffix;
-    document.getElementById('step2Desc').textContent = `Texto posterior al último guión en '${ssid}' (N = ${n} caracteres)`;
-
-    document.getElementById('step3Val').textContent = `${preserved} + [${suffix}]`;
-    document.getElementById('step3Desc').textContent = `Se conservan los primeros ${preserved.length} caracteres ('${preserved}') y se sustituyen los últimos ${n} con el sufijo.`;
-
-    document.getElementById('finalResult').textContent = derived;
-  }
-
-  const sampleNetworks = [
-    { ssid: "Fibertel-WiFi-902", mac: "00:1A:2B:3C:4D:5E", signal: -65 },
-    { ssid: "Personal-E60", mac: "20:35:43:2F:4E:65", signal: -55 },
-    { ssid: "Movistar-Plus", mac: "10:20:30:40:50:60", signal: -78 },
-    { ssid: "personal-flow-9A", mac: "44:55:66:77:88:99", signal: -68 },
-    { ssid: "Telecentro-4G", mac: "AA:BB:CC:DD:EE:FF", signal: -80 }
+  const SAMPLE = [
+    { ssid: "Personal-E60 2.4ghz", mac: "20:35:43:2F:4E:65", signal: -64, caps: "WPA2" },
+    { ssid: "Fibertel-WiFi 5g",    mac: "AA:BB:CC:DD:EE:FF", signal: -42, caps: "WPA3" },
+    { ssid: "Movistar-Plus",       mac: "10:20:30:40:50:60", signal: -78, caps: "WPA2" },
+    { ssid: "personal-flow-9A",    mac: "44:55:66:77:88:99", signal: -68, caps: "WPA2" },
+    { ssid: "Telecentro-4G",       mac: "CC:DD:EE:FF:00:11", signal: -81, caps: "WPA3" }
   ];
 
+  let networks = [];
+
+  function signalClass(s) {
+    if (s >= -55) return 'good';
+    if (s >= -70) return 'ok';
+    return 'weak';
+  }
+
   function renderNetworks() {
-    // 1. Ordenar: Las que comienzan con 'personal' primero, luego por mejor señal
-    const sorted = [...sampleNetworks].sort((a, b) => {
-      const aPersonal = a.ssid.toLowerCase().startsWith('personal');
-      const bPersonal = b.ssid.toLowerCase().startsWith('personal');
-      if (aPersonal && !bPersonal) return -1;
-      if (!aPersonal && bPersonal) return 1;
+    const sorted = [...networks].sort((a, b) => {
+      const ap = a.ssid.toLowerCase().startsWith('personal');
+      const bp = b.ssid.toLowerCase().startsWith('personal');
+      if (ap && !bp) return -1;
+      if (!ap && bp) return 1;
       return b.signal - a.signal;
     });
 
+    document.getElementById('apsHeader').textContent = `// NEARBY_APS (${sorted.length})`;
     const container = document.getElementById('networksList');
-    container.innerHTML = sorted.map(net => {
-      const isPersonal = net.ssid.toLowerCase().startsWith('personal');
+    container.innerHTML = sorted.map(n => {
+      const isP = n.ssid.toLowerCase().startsWith('personal');
       return `
-        <div onclick="selectNetwork('${net.ssid}', '${net.mac}')" style="
-          padding: 10px 12px;
-          border-radius: 8px;
-          background: ${isPersonal ? '#E8F1FC' : '#F8FAFC'};
-          border: ${isPersonal ? '1.5px solid var(--primary)' : '1px solid #E2E8F0'};
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-        ">
-          <div>
-            ${isPersonal ? '<span style="font-size: 9px; font-weight: 800; background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-right: 6px;">PERSONAL</span>' : ''}
-            <span style="font-size: 15px; font-weight: ${isPersonal ? '800' : '400'}; color: ${isPersonal ? 'var(--primary)' : 'inherit'};">
-              ${net.ssid}
-            </span>
-            <div style="font-family: monospace; font-size: 12px; color: var(--text-muted); margin-top: 3px;">
-              ${net.mac} • Señal: ${net.signal} dBm
+        <div class="net-card ${isP ? 'personal' : ''}" onclick="selectNetwork('${n.ssid}','${n.mac}')">
+          <div class="net-row-top">
+            <div class="net-ssid-wrap">
+              <span class="wifi-icon">▲</span>
+              <span class="net-ssid">${n.ssid}</span>
             </div>
+            <span class="signal ${signalClass(n.signal)}">${n.signal} dBm</span>
           </div>
-          <span style="color: var(--primary); font-size: 12px; font-weight: 600;">Elegir ➔</span>
-        </div>
-      `;
+          <div class="net-row-bot">
+            <span class="net-mac"><span>MAC:</span> ${n.mac.toUpperCase()}</span>
+            <span class="net-sec">${n.caps} <button class="copy-sm" onclick="event.stopPropagation();copyText('${n.mac}')">⎘</button></span>
+          </div>
+        </div>`;
     }).join('');
   }
 
-  function selectNetwork(s, m) {
-    document.getElementById('ssid').value = s;
-    document.getElementById('mac').value = m;
-    processAlgorithm();
-    showToast(`Seleccionada: ${s}`);
+  function selectNetwork(ssid, mac) {
+    document.getElementById('ssid').value = ssid;
+    document.getElementById('mac').value = mac;
+    runAlgorithm();
+    showToast('SELECCIONADO: ' + ssid);
+  }
+
+  function scanNetworks() {
+    const btn = document.getElementById('scanBtn');
+    const st = document.getElementById('statusText');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin">◌</span> SCANNING_NETWORKS...';
+    st.textContent = 'SCANNING...';
+
+    setTimeout(() => {
+      networks = [...SAMPLE];
+      renderNetworks();
+      btn.disabled = false;
+      btn.innerHTML = '◎  ESCANEAR REDES WI-FI';
+      st.textContent = 'SCAN_COMPLETE';
+    }, 1500);
+  }
+
+  function copyField(id) {
+    const val = document.getElementById(id).value;
+    if (val) { navigator.clipboard.writeText(val); showToast('COPIADO'); }
+  }
+
+  function copyText(t) {
+    navigator.clipboard.writeText(t);
+    showToast('COPIADO');
+  }
+
+  function runAlgorithmFromBtn() {
+    const s = document.getElementById('ssid').value.trim();
+    const m = document.getElementById('mac').value.trim();
+    if (!s && !m) {
+      document.getElementById('ssid').value = 'Personal-E60';
+      document.getElementById('mac').value  = '20:35:43:2F:4E:65';
+    }
+    runAlgorithm();
+  }
+
+  function runAlgorithm() {
+    const ssid = document.getElementById('ssid').value.trim();
+    const mac  = document.getElementById('mac').value.trim();
+    const box  = document.getElementById('outputBox');
+
+    if (!ssid && !mac) {
+      box.innerHTML = `<div class="output-waiting"><span>-- WAITING_EXECUTION --</span><span>⎘</span></div>`;
+      return;
+    }
+
+    const cleanMac = mac.replace(/[:\-]/g,'').toUpperCase();
+    if (!/^[0-9A-F]{12}$/.test(cleanMac)) {
+      box.innerHTML = `<div class="output-error">> ERR: MAC inválida (se esperan 12 hex). Actual: '${cleanMac}' (${cleanMac.length} chars)</div>`;
+      return;
+    }
+
+    const macTrim = cleanMac.substring(2);
+    const di = ssid.lastIndexOf('-');
+    if (di === -1 || di === ssid.length - 1) {
+      box.innerHTML = `<div class="output-error">> ERR: SSID debe contener guión '-' seguido del sufijo. Ej: Personal-E60</div>`;
+      return;
+    }
+
+    const suffix = ssid.substring(di + 1).toUpperCase();
+    if (suffix.length > macTrim.length) {
+      box.innerHTML = `<div class="output-error">> ERR: Sufijo '${suffix}' más largo que MAC recortada (${macTrim.length} chars)</div>`;
+      return;
+    }
+
+    const n = suffix.length;
+    const prefix = macTrim.substring(0, macTrim.length - n);
+    const derived = prefix + suffix;
+
+    box.innerHTML = `
+      <div class="output-line"><span class="output-key">> MAC_CLEAN:</span><span class="output-val">${cleanMac}</span></div>
+      <div class="output-line"><span class="output-key">> MAC_TRIM: </span><span class="output-val">${macTrim}</span></div>
+      <div class="output-line"><span class="output-key">> SUFFIX:   </span><span class="output-val">${suffix}</span></div>
+      <div class="output-line"><span class="output-key">> PREFIX:   </span><span class="output-val">${prefix}</span></div>
+      <hr class="output-divider">
+      <div class="output-derived">
+        <div><span class="output-key">> DERIVED:  </span><span class="derived-val">${derived}</span></div>
+        <button class="copy-sm" onclick="navigator.clipboard.writeText('${derived}');showToast('RESULTADO COPIADO')" style="color:var(--green-neon); font-size:14px;">⎘</button>
+      </div>
+    `;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 1800);
+  }
+
+  function renderAll() {
+    networks = [...SAMPLE];
+    renderNetworks();
   }
 
   window.onload = () => {
-    renderNetworks();
-    loadExample();
+    renderAll();
+    document.getElementById('ssid').value = 'Personal-E60';
+    document.getElementById('mac').value  = '20:35:43:2F:4E:65';
+    runAlgorithm();
   };
 </script>
-
 </body>
 </html>
