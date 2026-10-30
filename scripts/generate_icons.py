@@ -27,8 +27,13 @@ for folder, size in launcher_sizes.items():
 for folder, size in fg_sizes.items():
     out_dir = os.path.join(res_dir, folder)
     os.makedirs(out_dir, exist_ok=True)
-    resized = img.resize((size, size), Image.LANCZOS)
-    resized.save(os.path.join(out_dir, "ic_launcher_foreground.png"))
-    print(f"  {folder} foreground: {size}x{size}")
+    # En Adaptive Icon (108dp), la zona visible central segura es de 72dp (66% del tamaño)
+    safe_size = int(size * 0.72)
+    offset = (size - safe_size) // 2
+    fg_canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    resized_fg = img.resize((safe_size, safe_size), Image.LANCZOS)
+    fg_canvas.paste(resized_fg, (offset, offset))
+    fg_canvas.save(os.path.join(out_dir, "ic_launcher_foreground.png"))
+    print(f"  {folder} foreground (padded): {size}x{size}")
 
 print("All icons generated!")
