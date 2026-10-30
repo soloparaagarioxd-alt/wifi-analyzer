@@ -345,6 +345,30 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
             }
         }
 
+        // ── BANNER SUPERIOR ──────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF0F2916))
+                .border(1.dp, GreenNeon.copy(alpha = 0.5f))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "⚡ Funciona con PERSONAL-E90",
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenNeon,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
