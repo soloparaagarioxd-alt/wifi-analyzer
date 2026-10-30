@@ -37,3 +37,11 @@ jobs:
         with:
           name: WifiAnalyzer-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK to Release v1.0.3
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.3
+          files: app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
