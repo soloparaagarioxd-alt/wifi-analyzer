@@ -44,6 +44,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.delay
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.wifi.WifiNetworkSpecifier
+import androidx.compose.material.icons.filled.WifiTethering
 import androidx.core.content.ContextCompat
 
 // ─── Paleta de colores del tema terminal ───────────────────────────────────
@@ -142,6 +148,67 @@ fun copyToClipboard(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     clipboard?.setPrimaryClip(ClipData.newPlainText(label, text))
     Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
+}
+
+/**
+ * Inicia la solicitud oficial de conexión Wi-Fi utilizando WifiNetworkSpecifier (Android 10+ / API 29+)
+ */
+fun connectToWifiNetwork(context: Context, ssid: String, passphrase: String) {
+    if (ssid.isBlank() || passphrase.isBlank()) {
+        Toast.makeText(context, "SSID o contraseña vacíos", Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        if (connectivityManager == null) {
+            Toast.makeText(context, "ConnectivityManager no disponible", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            // 1. Configurar WifiNetworkSpecifier con SSID y passphrase
+            val specifier = WifiNetworkSpecifier.Builder()
+                .setSsid(ssid.trim())
+                .setWpa2Passphrase(passphrase.trim())
+                .build()
+
+            // 2. Construir NetworkRequest con TRANSPORT_WIFI y el specifier
+            val request = NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .setNetworkSpecifier(specifier)
+                .build()
+
+            Toast.makeText(context, "Solicitando conexión a $ssid...", Toast.LENGTH_SHORT).show()
+
+            // 3. Callback para capturar estado de la conexión
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    super.onAvailable(network)
+                    // Enlace a la red Wi-Fi para uso de la app
+                    connectivityManager.bindProcessToNetwork(network)
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        Toast.makeText(context, "✓ Conectado a $ssid", Toast.LENGTH_LONG).show()
+                    }
+                }
+
+                override fun onUnavailable() {
+                    super.onUnavailable()
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        Toast.makeText(context, "Conexión rechazada o no disponible", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+
+            // 4. Solicitar al sistema (despliega la interfaz de confirmación al usuario)
+            connectivityManager.requestNetwork(request, callback)
+
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error al solicitar conexión: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    } else {
+        Toast.makeText(context, "La API WifiNetworkSpecifier requiere Android 10 (API 29) o superior", Toast.LENGTH_LONG).show()
+    }
 }
 
 // ─── Componente de sección de título con prefijo // ────────────────────────
@@ -570,6 +637,39 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                                         fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         color = GreenNeon,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // Botón de conexión Wi-Fi automática con la contraseña generada
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, AccentWhite, RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF162B1D), RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        connectToWifiNetwork(
+                                            context = context,
+                                            ssid = ssidInput,
+                                            passphrase = result.derivedString
+                                        )
+                                    }
+                                    .padding(vertical = 13.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.WifiTethering, contentDescription = null,
+                                        tint = AccentWhite, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "CONECTAR A ESTA RED",
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AccentWhite,
                                         letterSpacing = 1.5.sp
                                     )
                                 }
