@@ -48,8 +48,8 @@ private val BgPrimary     = Color(0xFF0D0D0D)   // fondo general
 private val BgCard        = Color(0xFF161616)   // fondo de tarjetas
 private val BgInput       = Color(0xFF1A1A1A)   // fondo de inputs
 private val BorderColor   = Color(0xFF2A2A2A)   // bordes sutiles
-private val GreenNeon     = Color(0xFF00FF41)   // verde neón principal
-private val GreenDim      = Color(0xFF2ECC71)   // verde suave para labels
+private val GreenNeon     = Color(0xFF4ADE80)   // verde del logo PROYEC_WIFI
+private val GreenDim      = Color(0xFF3BBF6E)   // verde suave del logo
 private val TextPrimary   = Color(0xFFE0E0E0)   // texto principal
 private val TextMuted     = Color(0xFF666666)   // texto apagado
 private val TextLabel     = Color(0xFF888888)   // etiquetas secundarias
@@ -261,7 +261,7 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "WIFI SCANNER",
+                    text = "PROYEC_WIFI",
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
@@ -299,7 +299,209 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
 
-            // ── STATUS BLOCK ─────────────────────────────────────────────
+            // ── ANALYSIS MODULE (PRIMERO) ────────────────────────────────
+            item {
+                TerminalBox {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "// ANALYSIS_MODULE",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = TextLabel,
+                            letterSpacing = 1.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .border(1.dp, TextLabel, RoundedCornerShape(2.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("▶", fontSize = 10.sp, color = TextLabel, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    TerminalInput(
+                        value = ssidInput,
+                        onValueChange = { viewModel.onSsidChanged(it) },
+                        label = "TARGET SSID",
+                        placeholder = "Ingresa el SSID...",
+                        onCopy = { copyToClipboard(context, "SSID", ssidInput) }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    TerminalInput(
+                        value = macInput,
+                        onValueChange = { viewModel.onMacChanged(it) },
+                        label = "TARGET MAC ADDRESS",
+                        placeholder = "XX:XX:XX:XX:XX:XX",
+                        onCopy = { copyToClipboard(context, "MAC", macInput) }
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Botón ejecutar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, AccentWhite, RoundedCornerShape(4.dp))
+                            .background(Color(0xFF1C1C1C), RoundedCornerShape(4.dp))
+                            .clickable {
+                                if (ssidInput.isBlank() && macInput.isBlank()) {
+                                    viewModel.onSsidChanged("Personal-E60")
+                                    viewModel.onMacChanged("20:35:43:2F:4E:65")
+                                }
+                            }
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("⚡  ", fontSize = 13.sp, color = AccentWhite, fontFamily = FontFamily.Monospace)
+                            Text(
+                                text = "EJECUTAR ALGORITMO",
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentWhite,
+                                letterSpacing = 1.5.sp
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // ── ALGORITHM OUTPUT
+                    Text(
+                        text = "// ALGORITHM_OUTPUT",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = TextLabel,
+                        letterSpacing = 1.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    when (val result = analysisResult) {
+                        is AnalysisResult.Empty -> {
+                            TerminalOutputBox {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "-- WAITING_EXECUTION --",
+                                        fontSize = 13.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = TextMuted,
+                                        letterSpacing = 1.sp
+                                    )
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
+                                        tint = TextMuted, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+
+                        is AnalysisResult.Error -> {
+                            TerminalOutputBox {
+                                Text(
+                                    text = "> ERR: ${result.message}",
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = ErrorRed
+                                )
+                            }
+                        }
+
+                        is AnalysisResult.Success -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                                    .background(BgInput, RoundedCornerShape(4.dp))
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                TerminalOutputLine("> MAC_CLEAN:", result.normalizedMac)
+                                TerminalOutputLine("> MAC_TRIM: ", result.macWithoutFirstTwo)
+                                TerminalOutputLine("> SUFFIX:   ", result.extractedSuffix)
+                                TerminalOutputLine("> PREFIX:   ", result.preservedPrefix)
+
+                                Spacer(Modifier.height(4.dp))
+                                HorizontalDivider(color = BorderColor)
+                                Spacer(Modifier.height(4.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row {
+                                        Text(
+                                            text = "> DERIVED:  ",
+                                            fontSize = 12.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = TextMuted
+                                        )
+                                        Text(
+                                            text = result.derivedString,
+                                            fontSize = 15.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = GreenNeon,
+                                            letterSpacing = 1.5.sp
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { copyToClipboard(context, "Cadena Derivada", result.derivedString) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar resultado",
+                                            tint = GreenNeon, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // Botón copiar resultado
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, GreenNeon, RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF0A1F12), RoundedCornerShape(4.dp))
+                                    .clickable { copyToClipboard(context, "Cadena Derivada", result.derivedString) }
+                                    .padding(vertical = 13.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
+                                        tint = GreenNeon, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "COPIAR_RESULTADO",
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GreenNeon,
+                                        letterSpacing = 1.5.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── STATUS BLOCK (ESCÁNER) ───────────────────────────────────
             item {
                 TerminalBox {
                     Row(
@@ -315,7 +517,6 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         )
-                        // Indicador de estado en vivo
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
@@ -398,7 +599,6 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                         }
                     }
 
-                    // Error de escaneo
                     if (scanState is WifiScanState.Error) {
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -451,215 +651,6 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                         onCopySsid = { copyToClipboard(context, "SSID", network.ssid) },
                         onCopyMac = { copyToClipboard(context, "MAC", network.bssid) }
                     )
-                }
-            }
-
-            // Separador entre secciones
-            if (scanState is WifiScanState.Success) {
-                item { Spacer(Modifier.height(4.dp)) }
-            }
-
-            // ── ANALYSIS MODULE ──────────────────────────────────────────
-            item {
-                TerminalBox {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "// ANALYSIS_MODULE",
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = TextLabel,
-                            letterSpacing = 1.sp
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .border(1.dp, TextLabel, RoundedCornerShape(2.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("▶", fontSize = 10.sp, color = TextLabel, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    TerminalInput(
-                        value = ssidInput,
-                        onValueChange = { viewModel.onSsidChanged(it) },
-                        label = "TARGET SSID",
-                        placeholder = "Ingresa el SSID...",
-                        onCopy = { copyToClipboard(context, "SSID", ssidInput) }
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    TerminalInput(
-                        value = macInput,
-                        onValueChange = { viewModel.onMacChanged(it) },
-                        label = "TARGET MAC ADDRESS",
-                        placeholder = "XX:XX:XX:XX:XX:XX",
-                        onCopy = { copyToClipboard(context, "MAC", macInput) }
-                    )
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // Botón ejecutar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, AccentWhite, RoundedCornerShape(4.dp))
-                            .background(Color(0xFF1C1C1C), RoundedCornerShape(4.dp))
-                            .clickable {
-                                // Pre-cargar ejemplo si está vacío
-                                if (ssidInput.isBlank() && macInput.isBlank()) {
-                                    viewModel.onSsidChanged("Personal-E60")
-                                    viewModel.onMacChanged("20:35:43:2F:4E:65")
-                                }
-                            }
-                            .padding(vertical = 13.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("⚡  ", fontSize = 13.sp, color = AccentWhite, fontFamily = FontFamily.Monospace)
-                            Text(
-                                text = "EJECUTAR ALGORITMO",
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                color = AccentWhite,
-                                letterSpacing = 1.5.sp
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    // ── ALGORITHM OUTPUT
-                    Text(
-                        text = "// ALGORITHM_OUTPUT",
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = TextLabel,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    when (val result = analysisResult) {
-                        is AnalysisResult.Empty -> {
-                            TerminalOutputBox {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "-- WAITING_EXECUTION --",
-                                        fontSize = 13.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = TextMuted,
-                                        letterSpacing = 1.sp
-                                    )
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
-                                        tint = TextMuted, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        }
-
-                        is AnalysisResult.Error -> {
-                            TerminalOutputBox {
-                                Text(
-                                    text = "> ERR: ${result.message}",
-                                    fontSize = 12.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = ErrorRed
-                                )
-                            }
-                        }
-
-                        is AnalysisResult.Success -> {
-                            // Desglose compacto estilo terminal
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
-                                    .background(BgInput, RoundedCornerShape(4.dp))
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                TerminalOutputLine("> MAC_CLEAN:", result.normalizedMac)
-                                TerminalOutputLine("> MAC_TRIM: ", result.macWithoutFirstTwo)
-                                TerminalOutputLine("> SUFFIX:   ", result.extractedSuffix)
-                                TerminalOutputLine("> PREFIX:   ", result.preservedPrefix)
-
-                                Spacer(Modifier.height(4.dp))
-                                HorizontalDivider(color = BorderColor)
-                                Spacer(Modifier.height(4.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row {
-                                        Text(
-                                            text = "> DERIVED:  ",
-                                            fontSize = 12.sp,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = TextMuted
-                                        )
-                                        Text(
-                                            text = result.derivedString,
-                                            fontSize = 15.sp,
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = GreenNeon,
-                                            letterSpacing = 1.5.sp
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { copyToClipboard(context, "Cadena Derivada", result.derivedString) },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar resultado",
-                                            tint = GreenNeon, modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.height(10.dp))
-
-                            // Botón de copiar resultado grande
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, GreenNeon, RoundedCornerShape(4.dp))
-                                    .background(Color(0xFF001A0A), RoundedCornerShape(4.dp))
-                                    .clickable { copyToClipboard(context, "Cadena Derivada", result.derivedString) }
-                                    .padding(vertical = 13.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null,
-                                        tint = GreenNeon, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = "COPIAR_RESULTADO",
-                                        fontSize = 12.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.Bold,
-                                        color = GreenNeon,
-                                        letterSpacing = 1.5.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
 
