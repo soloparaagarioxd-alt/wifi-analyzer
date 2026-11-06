@@ -306,6 +306,10 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
     val scanState    by viewModel.scanState.collectAsState()
     val analysisResult by viewModel.analysisResult.collectAsState()
 
+    // Estado para el mensaje flotante de conexión Wi-Fi
+    var floatingTargetSsid by remember { mutableStateOf<String?>(null) }
+    var floatingPassword by remember { mutableStateOf("") }
+
     val requiredPermissions = remember {
         val perms = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -346,14 +350,17 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BgPrimary)
             .systemBarsPadding()
     ) {
-        // ── TOP BAR ───────────────────────────────────────────────────────
-        Row(
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // ── TOP BAR ───────────────────────────────────────────────────────
+            Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFF111111))
@@ -641,9 +648,12 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                                     .border(1.dp, AccentWhite, RoundedCornerShape(4.dp))
                                     .background(Color(0xFF162B1D), RoundedCornerShape(4.dp))
                                     .clickable {
+                                        val targetSsid = ssidInput.ifBlank { "PERSONAL-E90" }
+                                        floatingTargetSsid = targetSsid
+                                        floatingPassword = result.derivedString
                                         connectToWifiNetwork(
                                             context = context,
-                                            ssid = ssidInput,
+                                            ssid = targetSsid,
                                             passphrase = result.derivedString
                                         )
                                     }
@@ -823,6 +833,118 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
             }
 
             item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
+
+    // ── MENSAJE FLOTANTE DE CONEXIÓN WI-FI ──────────────────────────
+    floatingTargetSsid?.let { ssid ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.5.dp, GreenNeon, RoundedCornerShape(10.dp))
+                    .background(Color(0xFF0F2618), RoundedCornerShape(10.dp))
+                    .padding(16.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("📶", fontSize = 18.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "CONECTARSE A LA RED:",
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentWhite,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = { floatingTargetSsid = null },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text("✕", color = TextLabel, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = ssid,
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = GreenNeon,
+                        letterSpacing = 1.5.sp
+                    )
+
+                    Spacer(Modifier.height(6.dp))
+
+                    Text(
+                        text = "Selecciona esta red en los ajustes o en el diálogo del sistema. La contraseña ya fue copiada al portapapeles para pegar.",
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = TextPrimary
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(1.dp, GreenNeon, RoundedCornerShape(4.dp))
+                                .background(Color(0xFF143823), RoundedCornerShape(4.dp))
+                                .clickable {
+                                    copyToClipboard(context, "Contraseña", floatingPassword)
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "📋 RECOPIAR CLAVE",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = GreenNeon
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(1.dp, BorderColor, RoundedCornerShape(4.dp))
+                                .background(Color(0xFF222222), RoundedCornerShape(4.dp))
+                                .clickable {
+                                    floatingTargetSsid = null
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "ENTENDIDO",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
