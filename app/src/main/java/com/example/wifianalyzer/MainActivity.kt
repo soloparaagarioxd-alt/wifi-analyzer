@@ -836,6 +836,8 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
         }
     }
 
+    } // Fin del Box contenedor de WifiAnalyzerApp
+
     // ── MENSAJE FLOTANTE DE CONEXIÓN WI-FI ──────────────────────────
     floatingTargetSsid?.let { ssid ->
         Box(
