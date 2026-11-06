@@ -50,6 +50,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiNetworkSpecifier
 import androidx.compose.material.icons.filled.WifiTethering
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.content.ContextCompat
 
 // ─── Paleta de colores del tema terminal ───────────────────────────────────
@@ -70,6 +71,8 @@ class MainActivity : ComponentActivity() {
     private val viewModel: WifiAnalyzerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Inicializar SplashScreen oficial compatible con Android 12+
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
@@ -329,12 +332,13 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
     val analysisResult by viewModel.analysisResult.collectAsState()
 
     val requiredPermissions = remember {
-        val perms = mutableListOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+        val perms = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             perms.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            perms.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
         perms.toTypedArray()
     }
@@ -342,18 +346,29 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { map ->
-        val granted = map[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        map[Manifest.permission.NEARBY_WIFI_DEVICES] == true)
-        if (granted) viewModel.startWifiScan(context)
-        else Toast.makeText(context, "Se requieren permisos de ubicación", Toast.LENGTH_LONG).show()
+        val fineGranted = map[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = map[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val nearbyGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            map[Manifest.permission.NEARBY_WIFI_DEVICES] == true
+        } else false
+
+        val granted = fineGranted || coarseGranted || nearbyGranted
+        if (granted) {
+            viewModel.startWifiScan(context)
+        } else {
+            Toast.makeText(context, "Se requieren permisos de ubicación o Wi-Fi para detectar redes cercanas", Toast.LENGTH_LONG).show()
+        }
     }
 
     fun requestScan() {
-        val allGranted = requiredPermissions.all {
+        val hasAnyPermission = requiredPermissions.any {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         }
-        if (allGranted) viewModel.startWifiScan(context) else permissionLauncher.launch(requiredPermissions)
+        if (hasAnyPermission) {
+            viewModel.startWifiScan(context)
+        } else {
+            permissionLauncher.launch(requiredPermissions)
+        }
     }
 
     Column(

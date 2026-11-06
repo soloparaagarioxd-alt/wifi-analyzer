@@ -108,7 +108,8 @@ class WifiAnalyzerViewModel : ViewModel() {
                 }
 
                 val intentFilter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Compatible con Android 12 y 13+: Android 14+ exige RECEIVER_EXPORTED / NOT_EXPORTED
+                if (Build.VERSION.SDK_INT >= 33) {
                     context.registerReceiver(wifiScanReceiver, intentFilter, Context.RECEIVER_EXPORTED)
                 } else {
                     context.registerReceiver(wifiScanReceiver, intentFilter)
