@@ -50,7 +50,6 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiNetworkSpecifier
 import androidx.compose.material.icons.filled.WifiTethering
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.content.ContextCompat
 
 // ─── Paleta de colores del tema terminal ───────────────────────────────────
@@ -71,8 +70,6 @@ class MainActivity : ComponentActivity() {
     private val viewModel: WifiAnalyzerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Inicializar SplashScreen oficial compatible con Android 12+
-        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(
@@ -84,64 +81,13 @@ class MainActivity : ComponentActivity() {
                     onSurface = TextPrimary
                 )
             ) {
-                var showSplash by remember { mutableStateOf(true) }
-
-                LaunchedEffect(Unit) {
-                    delay(1800) // 1.8 segundos mostrando el logo
-                    showSplash = false
-                }
-
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = BgPrimary
                 ) {
-                    if (showSplash) {
-                        SplashScreen()
-                    } else {
-                        WifiAnalyzerApp(viewModel = viewModel)
-                    }
+                    WifiAnalyzerApp(viewModel = viewModel)
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun SplashScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0D0D0D)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.mipmap.ic_launcher),
-                contentDescription = "Logo",
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(RoundedCornerShape(28.dp))
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "PROYEC_WIFI",
-                fontSize = 20.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                color = GreenNeon,
-                letterSpacing = 3.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "INITIALIZING...",
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                color = TextLabel,
-                letterSpacing = 2.sp
-            )
         }
     }
 }
