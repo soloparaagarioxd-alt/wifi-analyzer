@@ -49,6 +49,8 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiNetworkSpecifier
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.material.icons.filled.WifiTethering
 import androidx.core.content.ContextCompat
 
@@ -101,12 +103,21 @@ fun copyToClipboard(context: Context, label: String, text: String) {
 
 /**
  * Inicia la solicitud oficial de conexión Wi-Fi utilizando WifiNetworkSpecifier (Android 10+ / API 29+)
+ * Copia la contraseña y si el specifier falla por requisitos de seguridad del fabricante,
+ * ofrece redirigir a los ajustes de Wi-Fi con la contraseña lista.
  */
 fun connectToWifiNetwork(context: Context, ssid: String, passphrase: String) {
     if (ssid.isBlank() || passphrase.isBlank()) {
         Toast.makeText(context, "SSID o contraseña vacíos", Toast.LENGTH_SHORT).show()
         return
     }
+
+    val cleanSsid = ssid.trim()
+    val cleanPass = passphrase.trim()
+
+    // Siempre asegurar copiar al portapapeles por comodidad del usuario
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    clipboard?.setPrimaryClip(ClipData.newPlainText("Password-$cleanSsid", cleanPass))
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -118,33 +129,33 @@ fun connectToWifiNetwork(context: Context, ssid: String, passphrase: String) {
         try {
             // 1. Configurar WifiNetworkSpecifier con SSID y passphrase
             val specifier = WifiNetworkSpecifier.Builder()
-                .setSsid(ssid.trim())
-                .setWpa2Passphrase(passphrase.trim())
+                .setSsid(cleanSsid)
+                .setWpa2Passphrase(cleanPass)
                 .build()
 
             // 2. Construir NetworkRequest con TRANSPORT_WIFI y el specifier
             val request = NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .setNetworkSpecifier(specifier)
                 .build()
 
-            Toast.makeText(context, "Solicitando conexión a $ssid...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "📶 Conectando a $cleanSsid (Clave copiada)...", Toast.LENGTH_SHORT).show()
 
             // 3. Callback para capturar estado de la conexión
             val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
                     super.onAvailable(network)
-                    // Enlace a la red Wi-Fi para uso de la app
                     connectivityManager.bindProcessToNetwork(network)
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        Toast.makeText(context, "✓ Conectado a $ssid", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "✓ ¡Conectado con éxito a $cleanSsid!", Toast.LENGTH_LONG).show()
                     }
                 }
 
                 override fun onUnavailable() {
                     super.onUnavailable()
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        Toast.makeText(context, "Conexión rechazada o no disponible", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Conexión rechazada o cancelada por el sistema", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -153,10 +164,28 @@ fun connectToWifiNetwork(context: Context, ssid: String, passphrase: String) {
             connectivityManager.requestNetwork(request, callback)
 
         } catch (e: Exception) {
-            Toast.makeText(context, "Error al solicitar conexión: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            // Si el fabricante o versión restringe requestNetwork o la longitud de clave WPA2,
+            // abrimos la pantalla de Wi-Fi del sistema con la clave ya copiada en el portapapeles
+            try {
+                Toast.makeText(context, "Abriendo Wi-Fi... Clave copiada en el portapapeles", Toast.LENGTH_LONG).show()
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            } catch (err: Exception) {
+                Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
         }
     } else {
-        Toast.makeText(context, "La API WifiNetworkSpecifier requiere Android 10 (API 29) o superior", Toast.LENGTH_LONG).show()
+        try {
+            Toast.makeText(context, "Abriendo Wi-Fi... Clave copiada: $cleanPass", Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
     }
 }
 
@@ -387,7 +416,7 @@ fun WifiAnalyzerApp(viewModel: WifiAnalyzerViewModel) {
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "⚡ Funciona con PERSONAL-E90",
+                    text = "📶 Fuciona en redes PERSONAL-E90",
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
